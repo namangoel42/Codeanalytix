@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Shopify Chatbot MVP</title>
+</head>
+<body>
+    <h1>Test Chatbot Page</h1>
+
+    <!-- --- Chat Widget JS --- -->
+    <script>
+    (function() {
+        // Avoid loading twice
+        if (window.shopifyAIChatLoaded) return;
+        window.shopifyAIChatLoaded = true;
+
+        // --- Styles ---
+        const style = document.createElement('style');
+        style.innerHTML = `
+            #ai-chat-widget {
+                position: fixed;
+                bottom: 20px;
+                right: 20px;
+                width: 350px;
+                max-width: 90%;
+                height: 450px;
+                background: white;
+                border: 1px solid #ccc;
+                border-radius: 10px;
+                box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+                display: flex;
+                flex-direction: column;
+                font-family: sans-serif;
+                z-index: 99999;
+            }
+            #ai-chat-header {
+                background: #4CAF50;
+                color: white;
+                padding: 10px;
+                font-weight: bold;
+                border-top-left-radius: 10px;
+                border-top-right-radius: 10px;
+            }
+            #ai-chat-messages {
+                flex: 1;
+                padding: 10px;
+                overflow-y: auto;
+            }
+            #ai-chat-input-container {
+                display: flex;
+                border-top: 1px solid #ccc;
+            }
+            #ai-chat-input {
+                flex: 1;
+                padding: 10px;
+                border: none;
+                outline: none;
+            }
+            #ai-chat-send {
+                padding: 10px 15px;
+                background: #4CAF50;
+                color: white;
+                border: none;
+                cursor: pointer;
+            }
+            .ai-chat-message {
+                margin-bottom: 10px;
+                padding: 8px;
+                border-radius: 8px;
+            }
+            .ai-chat-message.user {
+                background: #e0f7fa;
+                text-align: right;
+            }
+            .ai-chat-message.bot {
+                background: #f1f1f1;
+            }
+        `;
+        document.head.appendChild(style);
+
+        // --- HTML ---
+        const widget = document.createElement('div');
+        widget.id = 'ai-chat-widget';
+        widget.innerHTML = `
+            <div id="ai-chat-header">Shop Assistant</div>
+            <div id="ai-chat-messages"></div>
+            <div id="ai-chat-input-container">
+                <input type="text" id="ai-chat-input" placeholder="Ask me about products..." />
+                <button id="ai-chat-send">Send</button>
+            </div>
+        `;
+        document.body.appendChild(widget);
+
+        const messagesContainer = document.getElementById('ai-chat-messages');
+        const input = document.getElementById('ai-chat-input');
+        const sendBtn = document.getElementById('ai-chat-send');
+
+        // --- Helper: Add message ---
+        function addMessage(text, sender) {
+            const msg = document.createElement('div');
+            msg.className = 'ai-chat-message ' + sender;
+            msg.textContent = text;
+            messagesContainer.appendChild(msg);
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+
+        // --- Helper: Call backend API ---
+        async function askAI(message) {
+            try {
+                const response = await fetch('http://16.170.231.9:8000/chat', { // <-- Your FastAPI backend
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({message: message})
+                });
+                const data = await response.json();
+                return data.reply; // backend returns { reply: "text" }
+            } catch (err) {
+                console.error(err);
+                return "Sorry, I cannot answer right now.";
+            }
+        }
+
+        // --- Send button ---
+        async function sendMessage() {
+            const msg = input.value.trim();
+            if (!msg) return;
+            addMessage(msg, 'user');
+            input.value = '';
+            const reply = await askAI(msg);
+            addMessage(reply, 'bot');
+        }
+
+        sendBtn.addEventListener('click', sendMessage);
+        input.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') sendMessage();
+        });
+
+    })();
+    </script>
+
+</body>
+</html>
